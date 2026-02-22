@@ -1,0 +1,24 @@
+# 编译后的二进制可执行文件
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# 日志文件
+*.log
+
+# 依赖包目录
+vendor/
+
+# 各种编辑器的缓存目录
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 本地配置文件 
+etc/*.yaml 
