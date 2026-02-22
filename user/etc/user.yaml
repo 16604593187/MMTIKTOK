@@ -1,0 +1,40 @@
+Name: user.rpc
+ListenOn: 0.0.0.0:9701
+Etcd:
+  Hosts:
+    - 127.0.0.1:2379 
+  Key: user.rpc 
+
+# Gorm DB 设置 
+DbConfig:
+  path: 127.0.0.1  
+  port: 3306
+  Config: charset=utf8mb4&parseTime=True&loc=Local
+  db-name: douyin
+  username: root   
+  password: root   
+  max-idle-conns: 20 
+  max-open-conns: 50 
+
+# Redis 设置 
+RedisConfig:
+  Host: 127.0.0.1
+  Port: 6379
+  Auth: false 
+  Username:
+  Password:
+  MaxIdle: 20 
+  Active: 20 
+  IdleTimeout: 60 
+
+# Redis 缓存设置
+CacheConfig:
+  FOLLOW_CACHE_TTL: 3600 
+  FOLLOW_COUNT_CACHE_TTL: 3600 
+  FOLLOW_COUNT_THRESHOLD: 100000 
+  USER_CACHE_TTL: 43200 
+  USER_CACHE_INIT_SIZE: 100000 
+  FOLLOWLIST_MAX_CACHE_SIZE: 30 
+  FOLLOWERLIST_MAX_CACHE_SIZE: 30  
+
+WorkerId: 1 
