@@ -27,7 +27,7 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 }
 
 func (l *RegisterLogic) Register(in *user.RegisterReq) (*user.RegisterResp, error) {
-	// todo: add your logic here and delete this line
+	//获取用户名与密码
 	username := in.Username
 	password := in.Password
 	exit := int64(0)
@@ -35,13 +35,14 @@ func (l *RegisterLogic) Register(in *user.RegisterReq) (*user.RegisterResp, erro
 	if err != nil {
 		return nil, err
 	}
-	if exit > 0 {
+	if exit > 0 {//用户名已存在
 		return &user.RegisterResp{
 			StatusCode: STATUS_FAIL,
 			StatusMsg:  STATUS_USER_EXISTS_MSG,
 			UserID:     0,
 		}, nil
 	}
+	//不存在已有用户名则进行后续操作，用雪花算法生成分布式唯一ID
 	sf, err := snowflake.New(l.svcCtx.Config.WorkerId)
 	if err != nil {
 		return nil, err
@@ -53,9 +54,9 @@ func (l *RegisterLogic) Register(in *user.RegisterReq) (*user.RegisterResp, erro
 	userInfo := &model.User{
 		Id:       uuid,
 		Username: username,
-		Password: utils.BcryptHash(password),
+		Password: utils.BcryptHash(password),//调用hash.go中的函数使用brcypt对密码进行哈希加密
 	}
-	err = l.svcCtx.Db.Create(&userInfo).Error
+	err = l.svcCtx.Db.Create(&userInfo).Error//创建用户记录
 	if err != nil {
 		return nil, err
 	}

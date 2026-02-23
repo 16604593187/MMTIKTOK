@@ -12,7 +12,10 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-require gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
+require (
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
