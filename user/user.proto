@@ -33,6 +33,8 @@ message loginResp {
   string StatusCode = 1;
   string StatusMsg = 2;
   uint64 UserID = 3;
+  string accessToken = 4;
+  string refreshToken = 5;
 }
 
 message GetUserReq {

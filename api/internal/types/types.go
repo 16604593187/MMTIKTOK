@@ -111,8 +111,9 @@ type LoginReq struct {
 
 type LoginResp struct {
 	Response
-	Token  *string `json:"token"`             // 用户鉴权token
-	UserID uint64  `json:"user_id,omitempty"` // 用户id
+	Token        *string `json:"token"`             // 短期令牌
+	RefreshToken string  `json:"refresh_token"`     //长期令牌
+	UserID       uint64  `json:"user_id,omitempty"` // 用户id
 }
 
 type PublishListReq struct {

@@ -37,4 +37,9 @@ CacheConfig:
   FOLLOWLIST_MAX_CACHE_SIZE: 30 
   FOLLOWERLIST_MAX_CACHE_SIZE: 30  
 
+#JWT鉴权设置
+JwtAuth:
+  AccessSecret: "mini-tiktok-super-secret-key" 
+  AccessExpire: 7200                           # 短 Token 过期时间：2小时
+  RefreshExpire: 604800                        # 长 Token 过期时间：7天
 WorkerId: 1 

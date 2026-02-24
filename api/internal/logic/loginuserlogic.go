@@ -8,6 +8,7 @@ import (
 
 	"mini-tiktok/api/internal/svc"
 	"mini-tiktok/api/internal/types"
+	"mini-tiktok/user/user"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +28,22 @@ func NewLoginUserLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginUs
 }
 
 func (l *LoginUserLogic) LoginUser(req *types.LoginReq) (resp *types.LoginResp, err error) {
-	// todo: add your logic here and delete this line
+	rpcResp, err := l.svcCtx.UserRpc.Login(l.ctx, &user.LoginReq{
+		Username: req.Username,
+		Password: req.Password,
+	})
 
-	return
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.LoginResp{
+		Response: types.Response{
+			StatusCode: rpcResp.StatusCode,
+			StatusMsg:  rpcResp.StatusMsg,
+		},
+		UserID:       rpcResp.UserID,
+		Token:        &rpcResp.AccessToken,
+		RefreshToken: rpcResp.RefreshToken,
+	}, nil
 }

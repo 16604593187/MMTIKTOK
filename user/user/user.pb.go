@@ -190,6 +190,8 @@ type LoginResp struct {
 	StatusCode    string                 `protobuf:"bytes,1,opt,name=StatusCode,proto3" json:"StatusCode,omitempty"`
 	StatusMsg     string                 `protobuf:"bytes,2,opt,name=StatusMsg,proto3" json:"StatusMsg,omitempty"`
 	UserID        uint64                 `protobuf:"varint,3,opt,name=UserID,proto3" json:"UserID,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,4,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,5,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -243,6 +245,20 @@ func (x *LoginResp) GetUserID() uint64 {
 		return x.UserID
 	}
 	return 0
+}
+
+func (x *LoginResp) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *LoginResp) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
 }
 
 type GetUserReq struct {
@@ -786,13 +802,15 @@ const file_user_proto_rawDesc = "" +
 	"\x06UserID\x18\x03 \x01(\x04R\x06UserID\"B\n" +
 	"\bloginReq\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xa7\x01\n" +
 	"\tloginResp\x12\x1e\n" +
 	"\n" +
 	"StatusCode\x18\x01 \x01(\tR\n" +
 	"StatusCode\x12\x1c\n" +
 	"\tStatusMsg\x18\x02 \x01(\tR\tStatusMsg\x12\x16\n" +
-	"\x06UserID\x18\x03 \x01(\x04R\x06UserID\">\n" +
+	"\x06UserID\x18\x03 \x01(\x04R\x06UserID\x12 \n" +
+	"\vaccessToken\x18\x04 \x01(\tR\vaccessToken\x12\"\n" +
+	"\frefreshToken\x18\x05 \x01(\tR\frefreshToken\">\n" +
 	"\n" +
 	"GetUserReq\x12\x16\n" +
 	"\x06UserID\x18\x01 \x01(\tR\x06UserID\x12\x18\n" +

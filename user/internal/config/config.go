@@ -20,6 +20,11 @@ type Config struct {
 	}
 	CacheConfig CacheConfig
 	WorkerId    uint32
+	JwtAuth struct {
+		AccessSecret  string
+		AccessExpire  int64
+		RefreshExpire int64
+	}
 }
 
 type DbConfig struct {

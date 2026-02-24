@@ -3,6 +3,7 @@ module mini-tiktok
 go 1.25.7
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/gomodule/redigo v1.9.3
 	github.com/zeromicro/go-zero v1.10.0
 	golang.org/x/crypto v0.48.0
@@ -12,10 +13,7 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-require (
-	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
-	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
-)
+require gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -91,8 +89,8 @@ require (
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	golang.org/x/time v0.10.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	golang.org/x/time v0.12.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260217215200-42d3e9bedb6d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260217215200-42d3e9bedb6d // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
