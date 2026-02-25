@@ -52,7 +52,7 @@ func (l *LoginLogic) Login(in *user.LoginReq) (*user.LoginResp, error) {
 	accessExpire := l.svcCtx.Config.JwtAuth.AccessExpire
 	refreshExpire := l.svcCtx.Config.JwtAuth.RefreshExpire
 	secretKey := l.svcCtx.Config.JwtAuth.AccessSecret
-	accessToken, refreshToken, err := l.getJwtTokens(secretKey, now, accessExpire, refreshExpire, userInfo.Id)
+	accessToken, refreshToken, err := getJwtTokens(secretKey, now, accessExpire, refreshExpire, userInfo.Id)
 	if err != nil {
 		return nil, err // 签发失败，抛出系统异常
 	}
@@ -66,7 +66,7 @@ func (l *LoginLogic) Login(in *user.LoginReq) (*user.LoginResp, error) {
 }
 
 // JWT签发算法
-func (l *LoginLogic) getJwtTokens(secretKey string, iat, accessExpire, refreshExpire int64, userId uint64) (string, string, error) {
+func getJwtTokens(secretKey string, iat, accessExpire, refreshExpire int64, userId uint64) (string, string, error) {
 	//生成accessToken
 	claims := make(jwt.MapClaims)
 	claims["exp"] = iat + accessExpire

@@ -89,8 +89,9 @@ type (
 	}
 	RegisterResp {
 		Response
-		Token  *string `json:"token"` // 用户鉴权token
-		UserID uint64  `json:"user_id"` // 用户id
+		Token        *string `json:"token"` // 用户鉴权token
+		RefreshToken string  `json:"refresh_token"` //长期令牌
+		UserID       uint64  `json:"user_id"` // 用户id
 	}
 	LoginResp {
 		Response
@@ -142,26 +143,45 @@ type (
 		Response
 		UserList []User `json:"user_list"`
 	}
+	RefreshReq {
+		RefreshToken string `json:"refresh_token"`
+	}
+	RefreshResp {
+		Response
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
+	}
 )
 
+//无需鉴权
 service MiniTiktokApi {
-	@handler GetUser
-	get /douyin/user (GetUserReq) returns (GetUserResp)
-
 	@handler RegisterUser
 	post /douyin/user/register (RegisterReq) returns (RegisterResp)
 
 	@handler LoginUser
 	post /douyin/user/login (LoginReq) returns (LoginResp)
 
+	//刷新 Token 接口
+	@handler RefreshToken
+	post /douyin/user/refresh (RefreshReq) returns (RefreshResp)
+
+	@handler Feed
+	get /douyin/feed (FeedReq) returns (FeedResp)
+}
+
+//强制鉴权
+@server (
+	jwt: JwtAuth
+)
+service MiniTiktokApi {
+	@handler GetUser
+	get /douyin/user (GetUserReq) returns (GetUserResp)
+
 	@handler PublishAction
 	post /douyin/publish/action (PublishReq) returns (PublishResp)
 
 	@handler GetPublishList
 	get /douyin/publish/list (PublishListReq) returns (PublishListResp)
-
-	@handler Feed
-	get /douyin/feed (FeedReq) returns (FeedResp)
 
 	@handler favorite
 	post /douyin/favorite/action (FavoriteReq) returns (FavoriteResp)

@@ -7,10 +7,12 @@ import (
 
 type Config struct {
 	rest.RestConf
-	UserRpc   zrpc.RpcClientConf
-	/*JwtRpc    zrpc.RpcClientConf
-	VideoRpc  zrpc.RpcClientConf
-	AliyunOss struct {
+	UserRpc zrpc.RpcClientConf
+	JwtAuth struct {
+		AccessSecret string
+	}
+	//VideoRpc  zrpc.RpcClientConf
+	/*AliyunOss struct {
 		Endpoint        string
 		AccessKeyId     string
 		AccessKeySecret string

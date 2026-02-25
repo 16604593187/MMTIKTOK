@@ -2,7 +2,7 @@ package logic
 
 import (
 	"context"
-
+	"time"
 	"mini-tiktok/user/internal/logic/utils" // 密码加密工具
 	"mini-tiktok/user/internal/svc"
 	"mini-tiktok/user/model" // 数据库模型
@@ -60,9 +60,19 @@ func (l *RegisterLogic) Register(in *user.RegisterReq) (*user.RegisterResp, erro
 	if err != nil {
 		return nil, err
 	}
+	now := time.Now().Unix()
+	accessExpire := l.svcCtx.Config.JwtAuth.AccessExpire
+	refreshExpire := l.svcCtx.Config.JwtAuth.RefreshExpire
+	secretKey := l.svcCtx.Config.JwtAuth.AccessSecret
+	accessToken, refreshToken, err := getJwtTokens(secretKey, now, accessExpire, refreshExpire, userInfo.Id)
+	if err != nil {
+		return nil, err // 签发失败，抛出系统异常
+	}
 	return &user.RegisterResp{
 		StatusCode: STATUS_SUCCESS,
 		StatusMsg:  STATUS_SUCCESS_MSG,
 		UserID:     userInfo.Id,
+		AccessToken: accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }

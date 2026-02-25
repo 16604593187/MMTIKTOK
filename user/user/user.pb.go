@@ -78,6 +78,8 @@ type RegisterResp struct {
 	StatusCode    string                 `protobuf:"bytes,1,opt,name=StatusCode,proto3" json:"StatusCode,omitempty"`
 	StatusMsg     string                 `protobuf:"bytes,2,opt,name=StatusMsg,proto3" json:"StatusMsg,omitempty"`
 	UserID        uint64                 `protobuf:"varint,3,opt,name=UserID,proto3" json:"UserID,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,4,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,5,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -131,6 +133,20 @@ func (x *RegisterResp) GetUserID() uint64 {
 		return x.UserID
 	}
 	return 0
+}
+
+func (x *RegisterResp) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *RegisterResp) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
 }
 
 type LoginReq struct {
@@ -785,6 +801,120 @@ func (x *FollowerListResp) GetUserList() []*User {
 	return nil
 }
 
+// Token更换请求体
+type RefreshReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshReq) Reset() {
+	*x = RefreshReq{}
+	mi := &file_user_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshReq) ProtoMessage() {}
+
+func (x *RefreshReq) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshReq.ProtoReflect.Descriptor instead.
+func (*RefreshReq) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RefreshReq) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+// Token更换响应体
+type RefreshResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StatusCode    int64                  `protobuf:"varint,1,opt,name=statusCode,proto3" json:"statusCode,omitempty"`
+	StatusMsg     string                 `protobuf:"bytes,2,opt,name=statusMsg,proto3" json:"statusMsg,omitempty"`
+	AccessToken   string                 `protobuf:"bytes,3,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,4,opt,name=refreshToken,proto3" json:"refreshToken,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshResp) Reset() {
+	*x = RefreshResp{}
+	mi := &file_user_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshResp) ProtoMessage() {}
+
+func (x *RefreshResp) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshResp.ProtoReflect.Descriptor instead.
+func (*RefreshResp) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RefreshResp) GetStatusCode() int64 {
+	if x != nil {
+		return x.StatusCode
+	}
+	return 0
+}
+
+func (x *RefreshResp) GetStatusMsg() string {
+	if x != nil {
+		return x.StatusMsg
+	}
+	return ""
+}
+
+func (x *RefreshResp) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *RefreshResp) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
@@ -793,13 +923,15 @@ const file_user_proto_rawDesc = "" +
 	"user.proto\x12\x04user\"E\n" +
 	"\vregisterReq\x12\x1a\n" +
 	"\bUsername\x18\x01 \x01(\tR\bUsername\x12\x1a\n" +
-	"\bPassword\x18\x02 \x01(\tR\bPassword\"d\n" +
+	"\bPassword\x18\x02 \x01(\tR\bPassword\"\xaa\x01\n" +
 	"\fregisterResp\x12\x1e\n" +
 	"\n" +
 	"StatusCode\x18\x01 \x01(\tR\n" +
 	"StatusCode\x12\x1c\n" +
 	"\tStatusMsg\x18\x02 \x01(\tR\tStatusMsg\x12\x16\n" +
-	"\x06UserID\x18\x03 \x01(\x04R\x06UserID\"B\n" +
+	"\x06UserID\x18\x03 \x01(\x04R\x06UserID\x12 \n" +
+	"\vaccessToken\x18\x04 \x01(\tR\vaccessToken\x12\"\n" +
+	"\frefreshToken\x18\x05 \x01(\tR\frefreshToken\"B\n" +
 	"\bloginReq\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xa7\x01\n" +
@@ -857,7 +989,17 @@ const file_user_proto_rawDesc = "" +
 	"StatusCode\x12\x1c\n" +
 	"\tStatusMsg\x18\x02 \x01(\tR\tStatusMsg\x12&\n" +
 	"\bUserList\x18\x03 \x03(\v2\n" +
-	".user.UserR\bUserList2\xd9\x02\n" +
+	".user.UserR\bUserList\"0\n" +
+	"\n" +
+	"RefreshReq\x12\"\n" +
+	"\frefreshToken\x18\x01 \x01(\tR\frefreshToken\"\x91\x01\n" +
+	"\vRefreshResp\x12\x1e\n" +
+	"\n" +
+	"statusCode\x18\x01 \x01(\x03R\n" +
+	"statusCode\x12\x1c\n" +
+	"\tstatusMsg\x18\x02 \x01(\tR\tstatusMsg\x12 \n" +
+	"\vaccessToken\x18\x03 \x01(\tR\vaccessToken\x12\"\n" +
+	"\frefreshToken\x18\x04 \x01(\tR\frefreshToken2\x8b\x03\n" +
 	"\aUserRpc\x123\n" +
 	"\bRegister\x12\x11.user.registerReq\x1a\x12.user.registerResp\"\x00\x12*\n" +
 	"\x05Login\x12\x0e.user.loginReq\x1a\x0f.user.loginResp\"\x00\x120\n" +
@@ -865,7 +1007,8 @@ const file_user_proto_rawDesc = "" +
 	"\fFollowAction\x12\x15.user.FollowActionReq\x1a\x16.user.FollowActionResp\"\x00\x129\n" +
 	"\n" +
 	"FollowList\x12\x13.user.FollowListReq\x1a\x14.user.FollowListResp\"\x00\x12?\n" +
-	"\fFollowerList\x12\x15.user.FollowerListReq\x1a\x16.user.FollowerListResp\"\x00B\bZ\x06./userb\x06proto3"
+	"\fFollowerList\x12\x15.user.FollowerListReq\x1a\x16.user.FollowerListResp\"\x00\x120\n" +
+	"\aRefresh\x12\x10.user.RefreshReq\x1a\x11.user.RefreshResp\"\x00B\bZ\x06./userb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -879,7 +1022,7 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_user_proto_goTypes = []any{
 	(*RegisterReq)(nil),      // 0: user.registerReq
 	(*RegisterResp)(nil),     // 1: user.registerResp
@@ -894,6 +1037,8 @@ var file_user_proto_goTypes = []any{
 	(*FollowListResp)(nil),   // 10: user.FollowListResp
 	(*FollowerListReq)(nil),  // 11: user.FollowerListReq
 	(*FollowerListResp)(nil), // 12: user.FollowerListResp
+	(*RefreshReq)(nil),       // 13: user.RefreshReq
+	(*RefreshResp)(nil),      // 14: user.RefreshResp
 }
 var file_user_proto_depIdxs = []int32{
 	5,  // 0: user.GetUserResp.User:type_name -> user.User
@@ -905,14 +1050,16 @@ var file_user_proto_depIdxs = []int32{
 	7,  // 6: user.UserRpc.FollowAction:input_type -> user.FollowActionReq
 	9,  // 7: user.UserRpc.FollowList:input_type -> user.FollowListReq
 	11, // 8: user.UserRpc.FollowerList:input_type -> user.FollowerListReq
-	1,  // 9: user.UserRpc.Register:output_type -> user.registerResp
-	3,  // 10: user.UserRpc.Login:output_type -> user.loginResp
-	6,  // 11: user.UserRpc.GetUser:output_type -> user.GetUserResp
-	8,  // 12: user.UserRpc.FollowAction:output_type -> user.FollowActionResp
-	10, // 13: user.UserRpc.FollowList:output_type -> user.FollowListResp
-	12, // 14: user.UserRpc.FollowerList:output_type -> user.FollowerListResp
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
+	13, // 9: user.UserRpc.Refresh:input_type -> user.RefreshReq
+	1,  // 10: user.UserRpc.Register:output_type -> user.registerResp
+	3,  // 11: user.UserRpc.Login:output_type -> user.loginResp
+	6,  // 12: user.UserRpc.GetUser:output_type -> user.GetUserResp
+	8,  // 13: user.UserRpc.FollowAction:output_type -> user.FollowActionResp
+	10, // 14: user.UserRpc.FollowList:output_type -> user.FollowListResp
+	12, // 15: user.UserRpc.FollowerList:output_type -> user.FollowerListResp
+	14, // 16: user.UserRpc.Refresh:output_type -> user.RefreshResp
+	10, // [10:17] is the sub-list for method output_type
+	3,  // [3:10] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -929,7 +1076,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

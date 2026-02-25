@@ -5,10 +5,9 @@ Timeout: 60000 # 请求超时时间为 60s （投稿需要上传文件所以调�
 
 # http 报文最大长度设为 128M（因为投稿视频通过 http 所以需要调高上限）
 MaxBytes: 134217728
-
-# JWT 设置
-JwtConfig:
-  AccessExpire: 86400 # 过期时间
+#密钥
+JwtAuth:
+  AccessSecret: "mini-tiktok-super-secret-key"
 
 # JWT RPC 服务
 JwtRpc:

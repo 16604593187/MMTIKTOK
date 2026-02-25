@@ -135,6 +135,16 @@ type PublishResp struct {
 	Response
 }
 
+type RefreshReq struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type RefreshResp struct {
+	Response
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type RegisterReq struct {
 	Username string `form:"username"` // 用户名
 	Password string `form:"password"` // 密码
@@ -142,8 +152,9 @@ type RegisterReq struct {
 
 type RegisterResp struct {
 	Response
-	Token  *string `json:"token"`   // 用户鉴权token
-	UserID uint64  `json:"user_id"` // 用户id
+	Token        *string `json:"token"`         // 用户鉴权token
+	RefreshToken string  `json:"refresh_token"` //长期令牌
+	UserID       uint64  `json:"user_id"`       // 用户id
 }
 
 type Response struct {

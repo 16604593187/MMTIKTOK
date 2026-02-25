@@ -52,3 +52,8 @@ func (s *UserRpcServer) FollowerList(ctx context.Context, in *user.FollowerListR
 	l := logic.NewFollowerListLogic(ctx, s.svcCtx)
 	return l.FollowerList(in)
 }
+
+func (s *UserRpcServer) Refresh(ctx context.Context, in *user.RefreshReq) (*user.RefreshResp, error) {
+	l := logic.NewRefreshLogic(ctx, s.svcCtx)
+	return l.Refresh(in)
+}

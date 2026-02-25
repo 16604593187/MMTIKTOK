@@ -15,6 +15,31 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				Method:  http.MethodGet,
+				Path:    "/douyin/feed",
+				Handler: FeedHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/douyin/user/login",
+				Handler: LoginUserHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/douyin/user/refresh",
+				Handler: RefreshTokenHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/douyin/user/register",
+				Handler: RegisterUserHandler(serverCtx),
+			},
+		},
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
 				Method:  http.MethodPost,
 				Path:    "/douyin/comment/action",
 				Handler: commentHandler(serverCtx),
@@ -33,11 +58,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/douyin/favorite/list",
 				Handler: favoriteListHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodGet,
-				Path:    "/douyin/feed",
-				Handler: FeedHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
@@ -69,16 +89,7 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/douyin/user",
 				Handler: GetUserHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/douyin/user/login",
-				Handler: LoginUserHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/douyin/user/register",
-				Handler: RegisterUserHandler(serverCtx),
-			},
 		},
+		rest.WithJwt(serverCtx.Config.JwtAuth.AccessSecret),
 	)
 }

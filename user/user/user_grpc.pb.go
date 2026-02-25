@@ -25,6 +25,7 @@ const (
 	UserRpc_FollowAction_FullMethodName = "/user.UserRpc/FollowAction"
 	UserRpc_FollowList_FullMethodName   = "/user.UserRpc/FollowList"
 	UserRpc_FollowerList_FullMethodName = "/user.UserRpc/FollowerList"
+	UserRpc_Refresh_FullMethodName      = "/user.UserRpc/Refresh"
 )
 
 // UserRpcClient is the client API for UserRpc service.
@@ -37,6 +38,7 @@ type UserRpcClient interface {
 	FollowAction(ctx context.Context, in *FollowActionReq, opts ...grpc.CallOption) (*FollowActionResp, error)
 	FollowList(ctx context.Context, in *FollowListReq, opts ...grpc.CallOption) (*FollowListResp, error)
 	FollowerList(ctx context.Context, in *FollowerListReq, opts ...grpc.CallOption) (*FollowerListResp, error)
+	Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error)
 }
 
 type userRpcClient struct {
@@ -107,6 +109,16 @@ func (c *userRpcClient) FollowerList(ctx context.Context, in *FollowerListReq, o
 	return out, nil
 }
 
+func (c *userRpcClient) Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshResp)
+	err := c.cc.Invoke(ctx, UserRpc_Refresh_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserRpcServer is the server API for UserRpc service.
 // All implementations must embed UnimplementedUserRpcServer
 // for forward compatibility.
@@ -117,6 +129,7 @@ type UserRpcServer interface {
 	FollowAction(context.Context, *FollowActionReq) (*FollowActionResp, error)
 	FollowList(context.Context, *FollowListReq) (*FollowListResp, error)
 	FollowerList(context.Context, *FollowerListReq) (*FollowerListResp, error)
+	Refresh(context.Context, *RefreshReq) (*RefreshResp, error)
 	mustEmbedUnimplementedUserRpcServer()
 }
 
@@ -144,6 +157,9 @@ func (UnimplementedUserRpcServer) FollowList(context.Context, *FollowListReq) (*
 }
 func (UnimplementedUserRpcServer) FollowerList(context.Context, *FollowerListReq) (*FollowerListResp, error) {
 	return nil, status.Error(codes.Unimplemented, "method FollowerList not implemented")
+}
+func (UnimplementedUserRpcServer) Refresh(context.Context, *RefreshReq) (*RefreshResp, error) {
+	return nil, status.Error(codes.Unimplemented, "method Refresh not implemented")
 }
 func (UnimplementedUserRpcServer) mustEmbedUnimplementedUserRpcServer() {}
 func (UnimplementedUserRpcServer) testEmbeddedByValue()                 {}
@@ -274,6 +290,24 @@ func _UserRpc_FollowerList_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserRpc_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserRpcServer).Refresh(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserRpc_Refresh_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserRpcServer).Refresh(ctx, req.(*RefreshReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserRpc_ServiceDesc is the grpc.ServiceDesc for UserRpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,6 +338,10 @@ var UserRpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FollowerList",
 			Handler:    _UserRpc_FollowerList_Handler,
+		},
+		{
+			MethodName: "Refresh",
+			Handler:    _UserRpc_Refresh_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

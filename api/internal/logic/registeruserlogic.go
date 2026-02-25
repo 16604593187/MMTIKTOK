@@ -46,7 +46,8 @@ func (l *RegisterUserLogic) RegisterUser(req *types.RegisterReq) (resp *types.Re
 			StatusMsg:  rpcResp.StatusMsg,
 		},
 		UserID: rpcResp.UserID,
-		// Token: rpcResp.Token,
+		Token: &rpcResp.AccessToken,
+		RefreshToken: rpcResp.RefreshToken,
 	}, nil
 
 }

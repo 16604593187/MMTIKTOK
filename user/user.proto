@@ -11,6 +11,7 @@ service UserRpc {
   rpc FollowAction(FollowActionReq)returns(FollowActionResp){}
   rpc FollowList(FollowListReq)returns(FollowListResp){}
   rpc FollowerList(FollowerListReq)returns(FollowerListResp){}
+  rpc Refresh(RefreshReq) returns(RefreshResp){};//Token更换接口
 }
 
 message registerReq {
@@ -22,6 +23,8 @@ message registerResp {
   string StatusCode = 1;
   string StatusMsg = 2;
   uint64 UserID = 3;
+  string accessToken = 4;
+  string refreshToken = 5;
 }
 
 message loginReq{
@@ -87,4 +90,17 @@ message FollowerListResp {
   string StatusCode = 1;
   string StatusMsg = 2;
   repeated User UserList = 3;
+}
+
+//Token更换请求体
+message RefreshReq {
+  string refreshToken = 1;
+}
+
+// Token更换响应体
+message RefreshResp {
+  int64 statusCode = 1;
+  string statusMsg = 2;
+  string accessToken = 3;
+  string refreshToken = 4;
 }

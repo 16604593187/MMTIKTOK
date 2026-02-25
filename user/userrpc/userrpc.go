@@ -24,6 +24,8 @@ type (
 	GetUserResp      = user.GetUserResp
 	LoginReq         = user.LoginReq
 	LoginResp        = user.LoginResp
+	RefreshReq       = user.RefreshReq
+	RefreshResp      = user.RefreshResp
 	RegisterReq      = user.RegisterReq
 	RegisterResp     = user.RegisterResp
 	User             = user.User
@@ -35,6 +37,7 @@ type (
 		FollowAction(ctx context.Context, in *FollowActionReq, opts ...grpc.CallOption) (*FollowActionResp, error)
 		FollowList(ctx context.Context, in *FollowListReq, opts ...grpc.CallOption) (*FollowListResp, error)
 		FollowerList(ctx context.Context, in *FollowerListReq, opts ...grpc.CallOption) (*FollowerListResp, error)
+		Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error)
 	}
 
 	defaultUserRpc struct {
@@ -76,4 +79,9 @@ func (m *defaultUserRpc) FollowList(ctx context.Context, in *FollowListReq, opts
 func (m *defaultUserRpc) FollowerList(ctx context.Context, in *FollowerListReq, opts ...grpc.CallOption) (*FollowerListResp, error) {
 	client := user.NewUserRpcClient(m.cli.Conn())
 	return client.FollowerList(ctx, in, opts...)
+}
+
+func (m *defaultUserRpc) Refresh(ctx context.Context, in *RefreshReq, opts ...grpc.CallOption) (*RefreshResp, error) {
+	client := user.NewUserRpcClient(m.cli.Conn())
+	return client.Refresh(ctx, in, opts...)
 }
