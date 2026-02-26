@@ -13,7 +13,10 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-require gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
+require (
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
+)
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -61,6 +64,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/redis/go-redis/v9 v9.17.3 // indirect
+	github.com/segmentio/kafka-go v0.4.50
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.15 // indirect

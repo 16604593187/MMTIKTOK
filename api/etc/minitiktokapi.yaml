@@ -22,7 +22,6 @@ UserRpc:
     Hosts:
       - 127.0.0.1:2379
     Key: user.rpc
-
 # 阿里云 OSS 设置
 AliyunOss:
   Endpoint: oss-cn-beijing.aliyuncs.com # 阿里云 OSS 访问域名
@@ -39,7 +38,7 @@ KafkaConfig:
   BatchSize: 100 # 发送之前最多积压多少条消息
   BatchBytes: 1048576 # 发送之前最多积压的消息占用字节数
 
-# User RPC 服务
+# Video RPC 服务
 VideoRpc:
   Etcd:
     Hosts:

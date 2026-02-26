@@ -11,7 +11,7 @@ type Config struct {
 	JwtAuth struct {
 		AccessSecret string
 	}
-	//VideoRpc  zrpc.RpcClientConf
+	VideoRpc  zrpc.RpcClientConf
 	/*AliyunOss struct {
 		Endpoint        string
 		AccessKeyId     string

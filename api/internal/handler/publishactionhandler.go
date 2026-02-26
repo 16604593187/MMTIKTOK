@@ -19,9 +19,19 @@ func PublishActionHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-
+		err:=r.ParseMultipartForm(32<<20)
+		if(err!=nil){
+			httpx.ErrorCtx(r.Context(),w,err)
+			return
+		}
+		file,handler,err:=r.FormFile("data")
+		if(err!=nil){
+			httpx.ErrorCtx(r.Context(),w,err)
+			return
+		}
+		defer file.Close()
 		l := logic.NewPublishActionLogic(r.Context(), svcCtx)
-		resp, err := l.PublishAction(&req)
+		resp, err := l.PublishAction(&req,handler,file)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 		} else {

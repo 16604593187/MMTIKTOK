@@ -1,38 +1,55 @@
 package svc
 
 import (
-	"mini-tiktok/api/internal/config"
-	//"mini-tiktok/jwt/jwtrpc"
 	"mini-tiktok/user/userrpc"
-	"mini-tiktok/video/videorpc"
-	//"github.com/segmentio/kafka-go"
+	"mini-tiktok/video/internal/config"
+	"mini-tiktok/video/model"
+	"mini-tiktok/video/model/redisCache"
+	"github.com/segmentio/kafka-go"
 	"github.com/zeromicro/go-zero/zrpc"
-	//"time"
+	"gorm.io/gorm"
+	"log"
+	"time"
 )
 
 type ServiceContext struct {
 	Config      config.Config
 	UserRpc     userrpc.UserRpc
-	//JwtRpc      jwtrpc.JwtRpc
-	//KafkaWriter *kafka.Writer
-	VideoRpc    videorpc.VideoRpc
+	Redis       *redisCache.RedisPool
+	Db          *gorm.DB
+	KafkaWriter *kafka.Writer
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
+	db, err := model.InitGorm(c.DbConfig)
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
+	pool := redisCache.NewRedisPool(c)
+	conn := pool.NewRedisConn()
+	_, err = conn.Do("PING")
+	defer conn.Close()
+	if err != nil {
+		log.Fatalln(err)
+		return nil
+	}
+
 	return &ServiceContext{
 		Config:  c,
 		UserRpc: userrpc.NewUserRpc(zrpc.MustNewClient(c.UserRpc)),
-		/*JwtRpc:  jwtrpc.NewJwtRpc(zrpc.MustNewClient(c.JwtRpc)),
+		Redis:   pool,
+		Db:      db,
 		KafkaWriter: getKafkaWriter(c.KafkaConfig.Host,
 			c.KafkaConfig.Topic,
 			c.KafkaConfig.BatchTimeout,
 			c.KafkaConfig.BatchSize,
 			c.KafkaConfig.BatchBytes,
-		),*/
-		VideoRpc: videorpc.NewVideoRpc(zrpc.MustNewClient(c.VideoRpc)),
+		),
 	}
 }
-/*
+
 func getKafkaWriter(host, topic string, timeout int, size int, bytes int64) *kafka.Writer {
 	return &kafka.Writer{
 		Addr:         kafka.TCP(host),
@@ -43,4 +60,3 @@ func getKafkaWriter(host, topic string, timeout int, size int, bytes int64) *kaf
 		BatchBytes:   bytes,
 	}
 }
-*/
