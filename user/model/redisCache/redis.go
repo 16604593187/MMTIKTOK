@@ -465,3 +465,43 @@ func (p *RedisPool) InitRedis(conf *config.CacheConfig, db *gorm.DB) error {
 
 	return nil
 }
+
+//检查refreshToken是否在黑名单中
+func (r *RedisPool) CheckTokenBlacklist(conn redis.Conn, token string) (bool, error) {
+	key := fmt.Sprintf("used_token:%s", token)
+	// 使用 redigo 的万能 Do 方法发送 "EXISTS" 命令
+	// 并使用 redis.Bool 将 Redis 返回的 0/1 转换为 Go 的 false/true
+	isUsed, err := redis.Bool(conn.Do("EXISTS", key))
+	if err != nil && err != redis.ErrNil {
+		return false, err
+	}
+	return isUsed, nil
+}
+
+// AddTokenBlacklist 将使用过的 refreshToken 加入黑名单，并设置 TTL
+func (r *RedisPool) AddTokenBlacklist(conn redis.Conn, token string, ttlSeconds int) error {
+	key := fmt.Sprintf("used_token:%s", token)
+	// 使用 redigo 的万能 Do 方法发送 "SETEX" 命令
+	// 参数顺序：SETEX key seconds value
+	_, err := conn.Do("SETEX", key, ttlSeconds, "1")
+	return err
+}
+
+// 记录用户被强制下线的时间点 (存入时间戳)
+func (r *RedisPool) BanUserAtTime(conn redis.Conn, userId uint64, banTimestamp int64, ttlSeconds int) error {
+	key := fmt.Sprintf("user_blacklist:%d", userId)
+	// 存入的是 banTimestamp
+	_, err := conn.Do("SETEX", key, ttlSeconds, banTimestamp)
+	return err
+}
+
+// 获取用户被强制下线的时间点
+func (r *RedisPool) GetUserBanTime(conn redis.Conn, userId uint64) (int64, error) {
+	key := fmt.Sprintf("user_blacklist:%d", userId)
+	val, err := redis.Int64(conn.Do("GET", key))
+	// 如果 key 不存在，说明用户没被封禁，返回 0
+	if err == redis.ErrNil {
+		return 0, nil
+	}
+	return val, err
+}

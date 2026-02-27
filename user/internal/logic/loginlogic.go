@@ -8,7 +8,6 @@ import (
 	"mini-tiktok/user/user"
 	"time"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
 )
@@ -65,26 +64,4 @@ func (l *LoginLogic) Login(in *user.LoginReq) (*user.LoginResp, error) {
 	}, nil
 }
 
-// JWT签发算法
-func getJwtTokens(secretKey string, iat, accessExpire, refreshExpire int64, userId uint64) (string, string, error) {
-	//生成accessToken
-	claims := make(jwt.MapClaims)
-	claims["exp"] = iat + accessExpire
-	claims["iat"] = iat
-	claims["userId"] = userId
-	accessTokenClaim := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	accessToken, err := accessTokenClaim.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", "", err
-	}
-	refreshClaims := make(jwt.MapClaims)
-	refreshClaims["exp"] = iat + refreshExpire
-	refreshClaims["iat"] = iat
-	refreshClaims["userId"] = userId
-	refreshTokenClaim := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshToken, err := refreshTokenClaim.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", "", err
-	}
-	return accessToken, refreshToken, nil
-}
+
