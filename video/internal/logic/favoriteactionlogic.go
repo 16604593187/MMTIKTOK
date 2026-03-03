@@ -2,10 +2,17 @@ package logic
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"strconv"
+	"time"
 
 	"mini-tiktok/video/internal/svc"
+	"mini-tiktok/video/model"
+	"mini-tiktok/video/model/KafkaMessage"
 	"mini-tiktok/video/video"
 
+	"github.com/segmentio/kafka-go"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -24,7 +31,76 @@ func NewFavoriteActionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Fa
 }
 
 func (l *FavoriteActionLogic) FavoriteAction(in *video.FavoriteReq) (*video.FavoriteResp, error) {
-	// todo: add your logic here and delete this line
+	//提取请求参数
+	videoId, err := strconv.ParseUint(in.VideoId, 10, 64)
+	if err != nil {
+		return nil, errors.New("无效的视频ID")
+	}
 
-	return &video.FavoriteResp{}, nil
+	userid, err := strconv.ParseUint(in.UserId, 10, 64)
+	if err != nil {
+		return nil, errors.New("无效的用户ID")
+	}
+
+	actionTypeStr := in.ActionType
+	actionTypeInt, err := strconv.Atoi(actionTypeStr)
+
+	conn := l.svcCtx.Redis.NewRedisConn()
+	defer conn.Close()
+
+	//调用Lua接口
+	changed, err := l.svcCtx.Redis.ExecFavoriteAction(conn, int64(userid), int64(videoId), actionTypeInt)
+	if err != nil {
+		l.Logger.Errorf("Redis Lua 脚本执行失败: %v", err)
+		return nil, err
+	}
+
+	//如果状态未改变，直接阻断
+	if !changed {
+		l.Logger.Infof("拦截到重复操作：用户 %d 对视频 %d 尝试重复执行动作 %d，已直接放行", userid, videoId, actionTypeStr)
+		return &video.FavoriteResp{
+			StatusCode: STATUS_SUCCESS,
+			StatusMsg:  STATUS_SUCCESS_MSG,
+		}, nil
+	}
+	favorite := model.Favorite{
+		UserId:  userid,
+		VideoId: videoId,
+	}
+	var op string
+	switch actionTypeStr {
+	case FAVORITE_UPDATE:
+		favorite.CreateTime = time.Now().Unix()
+		op = OP_INSERT
+	case FAVORITE_DELETE:
+		op = OP_DELETE
+	default:
+		return nil, errors.New(STATUS_FAIL_PARAM_MSG)
+	}
+	//打包并投递 Kafka 消息
+	cols, err := json.Marshal(favorite)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := KafkaMessage.MsgInfo{
+		Op:      op,
+		Model:   MODEL_FAVORITE,
+		Columns: string(cols),
+	}
+
+	marshalStr, err := json.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	kafkaMsg := kafka.Message{
+		Value: marshalStr,
+	}
+	l.svcCtx.FavouriteBatcher.Push(kafkaMsg)
+
+	return &video.FavoriteResp{
+		StatusCode: STATUS_SUCCESS,
+		StatusMsg:  STATUS_SUCCESS_MSG,
+	}, nil
 }

@@ -1,23 +1,27 @@
 package svc
 
 import (
+	"context"
+	"log"
 	"mini-tiktok/user/userrpc"
 	"mini-tiktok/video/internal/config"
+
 	"mini-tiktok/video/model"
 	"mini-tiktok/video/model/redisCache"
+	"time"
+
 	"github.com/segmentio/kafka-go"
 	"github.com/zeromicro/go-zero/zrpc"
 	"gorm.io/gorm"
-	"log"
-	"time"
 )
 
 type ServiceContext struct {
-	Config      config.Config
-	UserRpc     userrpc.UserRpc
-	Redis       *redisCache.RedisPool
-	Db          *gorm.DB
-	KafkaWriter *kafka.Writer
+	Config           config.Config
+	UserRpc          userrpc.UserRpc
+	Redis            *redisCache.RedisPool
+	Db               *gorm.DB
+	KafkaWriter      *kafka.Writer
+	FavouriteBatcher *LocalBatcher
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -29,13 +33,20 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	pool := redisCache.NewRedisPool(c)
 	conn := pool.NewRedisConn()
+
 	_, err = conn.Do("PING")
 	defer conn.Close()
 	if err != nil {
 		log.Fatalln(err)
 		return nil
 	}
-
+	writer := getKafkaWriter(
+		c.KafkaConfig.Host,
+		c.KafkaConfig.Topic,
+		c.KafkaConfig.BatchTimeout,
+		c.KafkaConfig.BatchSize,
+		c.KafkaConfig.BatchBytes,
+	)
 	return &ServiceContext{
 		Config:  c,
 		UserRpc: userrpc.NewUserRpc(zrpc.MustNewClient(c.UserRpc)),
@@ -47,6 +58,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			c.KafkaConfig.BatchSize,
 			c.KafkaConfig.BatchBytes,
 		),
+		FavouriteBatcher: NewLocalBatcher(context.Background(), writer),
 	}
 }
 

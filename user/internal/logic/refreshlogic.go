@@ -60,52 +60,46 @@ func (l *RefreshLogic) Refresh(in *user.RefreshReq) (*user.RefreshResp, error) {
 	}
 	userId := uint64(userIdFloat)
 
+	oldJti, ok := claims["jti"].(string)
+	if !ok {
+		return nil, errors.New("非法 Token：缺少设备标识")
+	}
+
+	expTimeFloat, _ := claims["exp"].(float64)
+	remainingTTL := int(int64(expTimeFloat) - time.Now().Unix())
+	if remainingTTL < 0 {
+		remainingTTL = 0
+	}
+
 	redisConn := l.svcCtx.Redis.NewRedisConn()
 	defer redisConn.Close()
 
-	banTime, err := l.svcCtx.Redis.GetUserBanTime(redisConn, userId)
-	if err == nil && banTime > 0 {
-		// 提取这根 Token 的签发时间 iat
-		iatFloat, ok := claims["iat"].(float64)
-		if ok {
-			// 如果 Token 的签发时间 <= 强制下线时间，说明这是案发前的旧 Token
-			if int64(iatFloat) <= banTime {
-				l.Logger.Errorf("风控拦截：用户 %d 的 Token (签发于 %d) 处于强制下线时间 (%d) 之前，已作废", userId, int64(iatFloat), banTime)
-				return nil, errors.New("账号曾存在安全风险，旧凭证已彻底作废，请重新登录")
-			}
-		}
-	}
-	//重放拦截
-	isUsed, err := l.svcCtx.Redis.CheckTokenBlacklist(redisConn, in.RefreshToken)
-	if err == nil && isUsed {
-		// 🚨 触发主动反制：记录当前的案发时间戳，斩断此前签发的所有 Token！
-		nowTS := time.Now().Unix()
-		banTTL := 7 * 24 * 3600 // 保留 7 天的黑名单记录
-
-		errBan := l.svcCtx.Redis.BanUserAtTime(redisConn, userId, nowTS, banTTL)
-		if errBan == nil {
-			l.Logger.Errorf("🚨 主动反制触发：检测到重放攻击，已将用户 %d 踢下线 (封印时间戳: %d)", userId, nowTS)
-		}
-		return nil, errors.New("检测到异常请求，为保护账号安全，已强制下线")
+	// 封禁账户检查
+	banned, err := l.svcCtx.Redis.IsUserBanned(redisConn, userId)
+	if err == nil && banned {
+		return nil, errors.New("账号已被冻结，强制下线")
 	}
 
-	//与注册和登录相同的Token生成逻辑
+	// 生成全新的 Token 组合
 	now := time.Now().Unix()
 	accessExpire := l.svcCtx.Config.JwtAuth.AccessExpire
 	refreshExpire := l.svcCtx.Config.JwtAuth.RefreshExpire
-	newAccessToken, newRefreshToken, err := getJwtTokens(secretKey, now, accessExpire, refreshExpire, userId)
+	newAccessToken, newRefreshToken, newJti, err := getJwtTokens(secretKey, now, accessExpire, refreshExpire, userId)
+	if err != nil {
+		return nil, err
+	}
 
-	expTimeFloat, ok := claims["exp"].(float64)
-	if ok {
-		// 计算旧 Token 自然过期时间
-		remainingTTL := int(int64(expTimeFloat) - time.Now().Unix())
-		if remainingTTL > 0 {
-			// 将旧 Token 写进 Redis，存活时间等于剩余物理寿命
-			err = l.svcCtx.Redis.AddTokenBlacklist(redisConn, in.RefreshToken, remainingTTL)
-			if err != nil {
-				l.Logger.Errorf("将旧 Token 写入黑名单失败: %v", err) //不阻断正常运行
-			}
-		}
+	// Lua 轮转脚本 (防重放、防挤占、删旧加新)
+	success, err := l.svcCtx.Redis.CheckAndRotateToken(redisConn, userId, oldJti, newJti, remainingTTL)
+	if err != nil {
+		l.Logger.Errorf("执行 Token 轮转脚本失败: %v", err)
+		return nil, errors.New("系统繁忙，刷新失败")
+	}
+
+	// 拦截逻辑：重放攻击（黑名单有记录），或者被新设备挤下线，
+	if !success {
+		l.Logger.Errorf("风控拦截：用户 %d 的设备(jti:%s) 尝试重放或已被挤下线", userId, oldJti)
+		return nil, errors.New("登录状态已失效（可能由于在其他设备登录），请重新输入密码登录")
 	}
 	return &user.RefreshResp{
 		StatusCode:   0,

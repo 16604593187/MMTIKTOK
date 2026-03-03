@@ -505,3 +505,143 @@ func (r *RedisPool) GetUserBanTime(conn redis.Conn, userId uint64) (int64, error
 	}
 	return val, err
 }
+
+// IsUserBanned 检查用户是否被全局物理封禁
+func (p *RedisPool) IsUserBanned(conn redis.Conn, userId uint64) (bool, error) {
+	key := fmt.Sprintf("user:status:%d", userId)
+	val, err := redis.Int(conn.Do("GET", key))
+	if err == redis.ErrNil {
+		return false, nil // key 不存在，说明状态正常
+	}
+	if err != nil {
+		return false, err
+	}
+	return val == 1, nil // 为 1 表示已封禁
+}
+
+func (p *RedisPool) AddActiveToken(conn redis.Conn, userId uint64, jti string) error {
+	key := fmt.Sprintf("user:active:tokens:%d", userId)
+	_, err := conn.Do("SADD", key, jti)
+	return err
+}
+
+func (p *RedisPool) AddActiveTokenWithLimit(conn redis.Conn, userId uint64, newJti string, maxDevices int, tokenTtl int) error {
+	script := `
+		local activeKey = KEYS[1]
+		local newJti = ARGV[1]
+		local nowScore = tonumber(ARGV[2])
+		local maxDevices = tonumber(ARGV[3])
+		local tokenTtl = tonumber(ARGV[4])
+
+		-- 1. 将新设备的 jti 加入有序集合，分数设为当前时间戳
+		redis.call('ZADD', activeKey, nowScore, newJti)
+
+		-- 2. 检查当前在线设备总数
+		local currentCount = redis.call('ZCARD', activeKey)
+		
+		-- 3. 如果超出最大设备数，触发 FIFO 挤占
+		if currentCount > maxDevices then
+			local overflow = currentCount - maxDevices
+			-- 找出分数（时间戳）最小的几个旧 jti 
+			local oldJtis = redis.call('ZRANGE', activeKey, 0, overflow - 1)
+			
+			for _, oldJti in ipairs(oldJtis) do
+				redis.call('ZREM', activeKey, oldJti)
+				if tokenTtl > 0 then
+					local blacklistKey = 'blacklist:refresh:' .. oldJti
+					redis.call('SETEX', blacklistKey, tokenTtl, '1')
+				end
+			end
+		end
+		return 1
+	`
+	activeKey := fmt.Sprintf("user:active:tokens:%d", userId)
+	nowTs := time.Now().Unix() // 使用当前时间戳作为排序依据
+
+	_, err := conn.Do("EVAL", script, 1, activeKey, newJti, nowTs, maxDevices, tokenTtl)
+	return err
+}
+
+// LogoutToken 单设备登出：从 ZSet 中移除该 jti，并打入黑名单
+func (p *RedisPool) LogoutToken(conn redis.Conn, userId uint64, jti string, remainingTtl int) error {
+	script := `
+		local activeKey = KEYS[1]
+		local blacklistKey = KEYS[2]
+		local jti = ARGV[1]
+		local ttl = tonumber(ARGV[2])
+
+		-- 使用 ZREM 从有序集合中移除
+		redis.call('ZREM', activeKey, jti)
+		if ttl > 0 then
+			redis.call('SETEX', blacklistKey, ttl, '1')
+		end
+		return 1
+	`
+	activeKey := fmt.Sprintf("user:active:tokens:%d", userId)
+	blacklistKey := fmt.Sprintf("blacklist:refresh:%s", jti)
+	_, err := conn.Do("EVAL", script, 2, activeKey, blacklistKey, jti, remainingTtl)
+	return err
+}
+
+// CheckAndRotateToken 核心轮转逻辑：防重放、防挤占，并签发新 jti
+func (p *RedisPool) CheckAndRotateToken(conn redis.Conn, userId uint64, oldJti, newJti string, remainingTtl int) (bool, error) {
+	script := `
+		local activeKey = KEYS[1]
+		local blacklistKey = KEYS[2]
+		local oldJti = ARGV[1]
+		local newJti = ARGV[2]
+		local ttl = tonumber(ARGV[3])
+		local nowScore = tonumber(ARGV[4])
+
+		-- 防线 1: 防重放
+		if redis.call('EXISTS', blacklistKey) == 1 then return 0 end
+
+		-- 防线 2: 查活跃 ZSet (使用 ZSCORE 检查是否存在，防止已被 FIFO 挤下线)
+		if redis.call('ZSCORE', activeKey, oldJti) == false then return 0 end
+
+		-- 轮转：删旧加新
+		redis.call('ZREM', activeKey, oldJti)
+		redis.call('ZADD', activeKey, nowScore, newJti)
+		if ttl > 0 then
+			redis.call('SETEX', blacklistKey, ttl, '1')
+		end
+		return 1
+	`
+	activeKey := fmt.Sprintf("user:active:tokens:%d", userId)
+	blacklistKey := fmt.Sprintf("blacklist:refresh:%s", oldJti)
+	nowTs := time.Now().Unix()
+
+	res, err := redis.Int(conn.Do("EVAL", script, 2, activeKey, blacklistKey, oldJti, newJti, remainingTtl, nowTs))
+	if err != nil {
+		return false, err
+	}
+	return res == 1, nil
+}
+
+// BanUser 全局封禁
+func (p *RedisPool) BanUser(conn redis.Conn, userId uint64, banTtlSeconds int, tokenTtlSeconds int) error {
+	script := `
+		local activeKey = KEYS[1]
+		local statusKey = KEYS[2]
+		local banTtl = tonumber(ARGV[1])
+		local tokenTtl = tonumber(ARGV[2])
+
+		redis.call('SETEX', statusKey, banTtl, '1')
+
+		-- 使用 ZRANGE 0 -1 抓出所有在线设备的 jti
+		local jtis = redis.call('ZRANGE', activeKey, 0, -1)
+		for _, jti in ipairs(jtis) do
+			local blacklistKey = 'blacklist:refresh:' .. jti
+			if tokenTtl > 0 then
+				redis.call('SETEX', blacklistKey, tokenTtl, '1')
+			end
+		end
+
+		redis.call('DEL', activeKey)
+		return 1
+	`
+	activeKey := fmt.Sprintf("user:active:tokens:%d", userId)
+	statusKey := fmt.Sprintf("user:status:%d", userId)
+	_, err := conn.Do("EVAL", script, 2, activeKey, statusKey, banTtlSeconds, tokenTtlSeconds)
+	return err
+}

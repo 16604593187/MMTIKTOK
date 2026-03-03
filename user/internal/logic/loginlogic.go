@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"errors"
 	"mini-tiktok/user/internal/logic/utils"
 	"mini-tiktok/user/internal/svc"
 	"mini-tiktok/user/model"
@@ -51,10 +52,29 @@ func (l *LoginLogic) Login(in *user.LoginReq) (*user.LoginResp, error) {
 	accessExpire := l.svcCtx.Config.JwtAuth.AccessExpire
 	refreshExpire := l.svcCtx.Config.JwtAuth.RefreshExpire
 	secretKey := l.svcCtx.Config.JwtAuth.AccessSecret
-	accessToken, refreshToken, err := getJwtTokens(secretKey, now, accessExpire, refreshExpire, userInfo.Id)
+	accessToken, refreshToken, jti, err := getJwtTokens(secretKey, now, accessExpire, refreshExpire, userInfo.Id)
 	if err != nil {
 		return nil, err // 签发失败，抛出系统异常
 	}
+
+	redisConn := l.svcCtx.Redis.NewRedisConn()
+	defer redisConn.Close()
+
+	// 检查账号是否被物理封禁
+	banned, err := l.svcCtx.Redis.IsUserBanned(redisConn, userInfo.Id)
+	if err == nil && banned {
+		return nil, errors.New("该账号涉嫌严重违规，已被冻结") 
+	}
+
+	// 将新设备加入zset，触发 FIFO 多端挤占淘汰
+	maxDevices := 3 // 限制最多允许 3 台设备同时在线
+	tokenTtl := int(refreshExpire) 
+	err = l.svcCtx.Redis.AddActiveTokenWithLimit(redisConn, userInfo.Id, jti, maxDevices, tokenTtl)
+	if err != nil {
+		l.Logger.Errorf("Redis 记录设备在线状态失败: %v", err)
+		// 降级处理：即使 Redis 抖动，也允许用户登录
+	}
+	
 	return &user.LoginResp{
 		StatusCode:   STATUS_SUCCESS,
 		StatusMsg:    STATUS_SUCCESS_MSG,

@@ -2,6 +2,7 @@ package logic
 
 import (
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 const (
@@ -16,8 +17,9 @@ const (
 	OP_FOLLOW                 = "1"
 	OP_CANCEL_FOLLOW          = "2"
 )
+
 //Jwt签发算法
-func getJwtTokens(secretKey string, iat, accessExpire, refreshExpire int64, userId uint64) (string, string, error) {
+func getJwtTokens(secretKey string, iat, accessExpire, refreshExpire int64, userId uint64) (string, string, string, error) {
 	//生成accessToken
 	claims := make(jwt.MapClaims)
 	claims["exp"] = iat + accessExpire
@@ -26,17 +28,20 @@ func getJwtTokens(secretKey string, iat, accessExpire, refreshExpire int64, user
 	accessTokenClaim := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	accessToken, err := accessTokenClaim.SignedString([]byte(secretKey))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
+
+	jti := uuid.New().String()
 	//生成refreshToken
 	refreshClaims := make(jwt.MapClaims)
 	refreshClaims["exp"] = iat + refreshExpire
 	refreshClaims["iat"] = iat
 	refreshClaims["userId"] = userId
+	refreshClaims["jti"] = jti
 	refreshTokenClaim := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshToken, err := refreshTokenClaim.SignedString([]byte(secretKey))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, jti, nil
 }

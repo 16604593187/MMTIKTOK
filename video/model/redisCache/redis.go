@@ -1,15 +1,16 @@
 package redisCache
 
 import (
-	"mini-tiktok/video/internal/config"
-	"mini-tiktok/video/model"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gomodule/redigo/redis"
-	"gorm.io/gorm"
+	"mini-tiktok/video/internal/config"
+	"mini-tiktok/video/model"
 	"strconv"
 	"time"
+
+	"github.com/gomodule/redigo/redis"
+	"gorm.io/gorm"
 )
 
 type RedisPool struct {
@@ -639,4 +640,52 @@ func (p *RedisPool) InitRedis(conf *config.CacheConfig, db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+//以下为个人改写部分
+const favoriteLuaScript = `
+-- KEYS[1]: 用户点赞集合 Key 
+-- KEYS[2]: 视频点赞数 Key 
+-- ARGV[1]: 视频 ID
+-- ARGV[2]: 动作类型 (1 表示点赞，2 表示取消点赞)
+
+local action = tonumber(ARGV[2])
+
+if action == 1 then
+    -- 尝试向 Set 中添加视频 ID (SADD 如果已存在会返回 0，新添加返回 1)
+    local isAdded = redis.call("SADD", KEYS[1], ARGV[1])
+    if isAdded == 1 then
+        redis.call("INCR", KEYS[2])
+        return 1 
+    end
+    -- 如果是重复点赞，直接忽略，返回 0
+    return 0
+
+elseif action == 2 then
+    -- 尝试从 Set 中移除视频 ID (SREM 如果存在并移除成功返回 1)
+    local isRemoved = redis.call("SREM", KEYS[1], ARGV[1])
+    if isRemoved == 1 then
+        redis.call("DECR", KEYS[2])
+        return 1 
+    end
+    return 0
+end
+
+return 0
+`
+func (r *RedisPool) ExecFavoriteAction(conn redis.Conn, userId int64, videoId int64, actionType int) (bool, error) {
+	userLikeKey := fmt.Sprintf("user_likes:%d", userId)
+	videoCntKey := fmt.Sprintf("video_like_cnt:%d", videoId)
+
+	// 使用 redigo 加载并执行 Lua 脚本
+	script := redis.NewScript(2, favoriteLuaScript)
+	
+	// 执行脚本，获取返回结果 
+	result, err := redis.Int(script.Do(conn, userLikeKey, videoCntKey, videoId, actionType))
+	if err != nil {
+		return false, err
+	}
+
+	// 如果返回 1，说明操作有效
+	return result == 1, nil
 }
