@@ -584,7 +584,7 @@ func (p *RedisPool) LogoutToken(conn redis.Conn, userId uint64, jti string, rema
 }
 
 // CheckAndRotateToken 核心轮转逻辑：防重放、防挤占，并签发新 jti
-func (p *RedisPool) CheckAndRotateToken(conn redis.Conn, userId uint64, oldJti, newJti string, remainingTtl int) (bool, error) {
+func (p *RedisPool) CheckAndRotateToken(conn redis.Conn, userId uint64, oldJti, newJti string, remainingTtl int) (int, error) {
 	script := `
 		local activeKey = KEYS[1]
 		local blacklistKey = KEYS[2]
@@ -593,11 +593,11 @@ func (p *RedisPool) CheckAndRotateToken(conn redis.Conn, userId uint64, oldJti, 
 		local ttl = tonumber(ARGV[3])
 		local nowScore = tonumber(ARGV[4])
 
-		-- 防线 1: 防重放
-		if redis.call('EXISTS', blacklistKey) == 1 then return 0 end
+		-- 防线 1: 查废纸篓 (防重放) 返回 -1
+		if redis.call('EXISTS', blacklistKey) == 1 then return -1 end
 
-		-- 防线 2: 查活跃 ZSet (使用 ZSCORE 检查是否存在，防止已被 FIFO 挤下线)
-		if redis.call('ZSCORE', activeKey, oldJti) == false then return 0 end
+		-- 防线 2: 查活跃 ZSet (防挤占) 返回 -2
+		if redis.call('ZSCORE', activeKey, oldJti) == false then return -2 end
 
 		-- 轮转：删旧加新
 		redis.call('ZREM', activeKey, oldJti)
@@ -611,11 +611,12 @@ func (p *RedisPool) CheckAndRotateToken(conn redis.Conn, userId uint64, oldJti, 
 	blacklistKey := fmt.Sprintf("blacklist:refresh:%s", oldJti)
 	nowTs := time.Now().Unix()
 
+	// 改为接收 redis.Int
 	res, err := redis.Int(conn.Do("EVAL", script, 2, activeKey, blacklistKey, oldJti, newJti, remainingTtl, nowTs))
 	if err != nil {
-		return false, err
+		return 0, err
 	}
-	return res == 1, nil
+	return res, nil
 }
 
 // BanUser 全局封禁
@@ -643,5 +644,30 @@ func (p *RedisPool) BanUser(conn redis.Conn, userId uint64, banTtlSeconds int, t
 	activeKey := fmt.Sprintf("user:active:tokens:%d", userId)
 	statusKey := fmt.Sprintf("user:status:%d", userId)
 	_, err := conn.Do("EVAL", script, 2, activeKey, statusKey, banTtlSeconds, tokenTtlSeconds)
+	return err
+}
+
+// ForceLogoutAll 保护性强制下线：清空所有在线设备并拉黑，但不封禁账号物理状态
+func (p *RedisPool) ForceLogoutAll(conn redis.Conn, userId uint64, tokenTtlSeconds int) error {
+	script := `
+		local activeKey = KEYS[1]
+		local tokenTtl = tonumber(ARGV[1])
+
+		-- 使用 ZRANGE 0 -1 抓出所有在线设备的 jti
+		local jtis = redis.call('ZRANGE', activeKey, 0, -1)
+		for _, jti in ipairs(jtis) do
+			local blacklistKey = 'blacklist:refresh:' .. jti
+			if tokenTtl > 0 then
+				redis.call('SETEX', blacklistKey, tokenTtl, '1')
+			end
+		end
+
+		-- 让所有设备下线，需要重新输入密码登录
+		redis.call('DEL', activeKey)
+		return 1
+	`
+	activeKey := fmt.Sprintf("user:active:tokens:%d", userId)
+	// 只有 1 个 KEY，不需要传 statusKey
+	_, err := conn.Do("EVAL", script, 1, activeKey, tokenTtlSeconds)
 	return err
 }

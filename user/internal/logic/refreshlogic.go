@@ -90,15 +90,26 @@ func (l *RefreshLogic) Refresh(in *user.RefreshReq) (*user.RefreshResp, error) {
 	}
 
 	// Lua 轮转脚本 (防重放、防挤占、删旧加新)
-	success, err := l.svcCtx.Redis.CheckAndRotateToken(redisConn, userId, oldJti, newJti, remainingTTL)
+	status, err := l.svcCtx.Redis.CheckAndRotateToken(redisConn, userId, oldJti, newJti, remainingTTL)
 	if err != nil {
 		l.Logger.Errorf("执行 Token 轮转脚本失败: %v", err)
 		return nil, errors.New("系统繁忙，刷新失败")
 	}
 
-	// 拦截逻辑：重放攻击（黑名单有记录），或者被新设备挤下线，
-	if !success {
-		l.Logger.Errorf("风控拦截：用户 %d 的设备(jti:%s) 尝试重放或已被挤下线", userId, oldJti)
+	switch status {
+	case -1:
+		//触发保护性强制下线：检测到重放攻击
+		tokenTtl := int(refreshExpire)
+
+		errBan := l.svcCtx.Redis.ForceLogoutAll(redisConn, userId, tokenTtl)
+		if errBan == nil {
+			l.Logger.Errorf("🚨 保护性下线触发：检测到重放攻击 (jti:%s)，已将用户 %d 的所有设备踢下线", oldJti, userId)
+		}
+		return nil, errors.New("检测到账号环境异常，为保护您的安全，已退出登录，请重新输入密码")
+
+	case -2:
+		// 被新设备挤下线
+		l.Logger.Errorf("风控拦截：用户 %d 的设备(jti:%s) 已被新设备挤下线", userId, oldJti)
 		return nil, errors.New("登录状态已失效（可能由于在其他设备登录），请重新输入密码登录")
 	}
 	return &user.RefreshResp{
