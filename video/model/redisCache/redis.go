@@ -673,14 +673,15 @@ end
 
 return 0
 `
+
 func (r *RedisPool) ExecFavoriteAction(conn redis.Conn, userId int64, videoId int64, actionType int) (bool, error) {
 	userLikeKey := fmt.Sprintf("user_likes:%d", userId)
 	videoCntKey := fmt.Sprintf("video_like_cnt:%d", videoId)
 
 	// 使用 redigo 加载并执行 Lua 脚本
 	script := redis.NewScript(2, favoriteLuaScript)
-	
-	// 执行脚本，获取返回结果 
+
+	// 执行脚本，获取返回结果
 	result, err := redis.Int(script.Do(conn, userLikeKey, videoCntKey, videoId, actionType))
 	if err != nil {
 		return false, err
@@ -688,4 +689,13 @@ func (r *RedisPool) ExecFavoriteAction(conn redis.Conn, userId int64, videoId in
 
 	// 如果返回 1，说明操作有效
 	return result == 1, nil
+}
+
+// 批量删除 Redis Key
+func (p *RedisPool) Del(keys ...interface{}) (interface{}, error) {
+	conn := p.NewRedisConn()
+	defer conn.Close()
+
+	// 底层调用 DEL 命令
+	return conn.Do("DEL", keys...)
 }

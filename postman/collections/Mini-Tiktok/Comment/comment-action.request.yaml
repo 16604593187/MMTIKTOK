@@ -1,0 +1,35 @@
+$kind: http-request
+name: 'Comment action'
+method: POST
+url: '{{base_url}}/douyin/comment/action'
+order: 10000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: token
+      value: '{{token}}'
+      description: 用户鉴权 token
+    - key: video_id
+      value: '{{video_id}}'
+      description: 视频id
+    - key: action_type
+      value: '{{comment_action_type}}'
+      description: 1-发布评论，2-删除评论
+    - key: comment_text
+      value: '{{comment_text}}'
+      description: 'action_type=1 时使用'
+      disabled: true
+    - key: comment_id
+      value: '{{comment_id}}'
+      description: 'action_type=2 时使用'
+      disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });

@@ -5,6 +5,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 
 	"mini-tiktok/api/internal/svc"
 	"mini-tiktok/api/internal/types"
@@ -35,6 +36,16 @@ func (l *RefreshTokenLogic) RefreshToken(req *types.RefreshReq) (resp *types.Ref
 		return nil, err
 	}
 
+	if rpcResp.StatusCode != 0 {
+		return &types.RefreshResp{
+			Response: types.Response{
+				StatusCode: fmt.Sprintf("%d", rpcResp.StatusCode),
+				StatusMsg:  rpcResp.StatusMsg,
+			},
+		}, nil
+	}
+
+	// 业务完全成功
 	return &types.RefreshResp{
 		Response: types.Response{
 			StatusCode: "0",

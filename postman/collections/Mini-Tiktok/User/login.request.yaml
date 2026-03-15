@@ -1,0 +1,41 @@
+$kind: http-request
+name: 'Login user'
+method: POST
+url: '{{base_url}}/douyin/user/login'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: username
+      value: '{{username}}'
+      description: 用户名
+    - key: password
+      value: '{{password}}'
+      description: 密码
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });
+
+      let json;
+      try {
+        json = pm.response.json();
+      } catch (e) {
+        json = null;
+      }
+
+      const token = json?.data?.token ?? json?.token ?? json?.access_token;
+      if (token) {
+        pm.environment.set('token', token);
+      }
+
+      const userId = json?.user_id ?? json?.data?.user_id ?? json?.data?.userId;
+      if (userId !== undefined && userId !== null) {
+        pm.environment.set('user_id', String(userId));
+      }

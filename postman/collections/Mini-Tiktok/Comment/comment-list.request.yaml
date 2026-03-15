@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Comment list'
+method: GET
+url: '{{base_url}}/douyin/comment/list'
+order: 11000
+queryParams:
+  - key: token
+    value: '{{token}}'
+    description: 用户鉴权 token
+  - key: video_id
+    value: '{{video_id}}'
+    description: 视频id
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });

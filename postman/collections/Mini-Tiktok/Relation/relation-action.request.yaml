@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'Relation action (follow/unfollow)'
+method: POST
+url: '{{base_url}}/douyin/relation/action'
+order: 12000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: token
+      value: '{{token}}'
+      description: 用户鉴权 token
+    - key: to_user_id
+      value: '{{to_user_id}}'
+      description: 对方用户id
+    - key: action_type
+      value: '{{relation_action_type}}'
+      description: 1-关注，2-取消关注
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });

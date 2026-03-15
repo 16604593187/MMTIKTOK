@@ -1,0 +1,6 @@
+$kind: collection
+name: Mini-Tiktok
+variables:
+  - key: base_url
+    value: 'http://localhost:8888'
+    description: 'Base URL for Mini-Tiktok API (update to your running server host/port)'

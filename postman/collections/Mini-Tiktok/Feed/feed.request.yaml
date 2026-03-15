@@ -1,0 +1,21 @@
+$kind: http-request
+name: 'Feed'
+method: GET
+url: '{{base_url}}/douyin/feed'
+order: 4000
+queryParams:
+  - key: latest_time
+    value: '{{latest_time}}'
+    description: '可选：限制返回视频的最新投稿时间戳(秒)'
+    disabled: true
+  - key: token
+    value: '{{token}}'
+    description: '可选：用户登录状态下设置'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });

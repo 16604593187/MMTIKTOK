@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -33,11 +34,14 @@ func NewLocalBatcher(ctx context.Context, writer *kafka.Writer) *LocalBatcher {
 }
 
 // Push 业务层调用的非阻塞投递接口
-func (b *LocalBatcher) Push(msg kafka.Message) {
+func (b *LocalBatcher) Push(msg kafka.Message) error {
 	select {
 	case b.msgChan <- msg:
+		return nil // 投递成功
 	default:
-		logx.Errorf("严重警告：本地 Kafka 缓冲队列已满，消息被降级丢弃！")
+		err := errors.New("本地 Kafka 缓冲队列已满，消息被降级丢弃")
+		logx.Errorf("严重警告：%v", err)
+		return err // 返回错误，通知业务层进行补偿回滚
 	}
 }
 

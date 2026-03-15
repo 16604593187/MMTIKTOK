@@ -23,9 +23,9 @@ RedisConfig:
   Auth: false 
   Username:
   Password:
-  MaxIdle: 20 
-  Active: 20 
-  IdleTimeout: 60 
+  MaxIdle: 50 
+  Active: 50
+  IdleTimeout: 60
 
 # Redis 缓存设置
 CacheConfig:

@@ -1,0 +1,19 @@
+$kind: http-request
+name: 'Follow list'
+method: GET
+url: '{{base_url}}/douyin/relation/follow/list'
+order: 13000
+queryParams:
+  - key: token
+    value: '{{token}}'
+    description: 用户鉴权 token
+  - key: user_id
+    value: '{{user_id}}'
+    description: 用户id
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });

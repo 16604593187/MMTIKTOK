@@ -1,0 +1,38 @@
+$kind: http-request
+name: 'Refresh token'
+method: POST
+url: '{{base_url}}/douyin/user/refresh'
+order: 3000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "refresh_token": "{{refresh_token}}"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });
+
+      let json;
+      try {
+        json = pm.response.json();
+      } catch (e) {
+        json = null;
+      }
+
+      const token = json?.data?.token ?? json?.token ?? json?.access_token;
+      if (token) {
+        pm.environment.set('token', token);
+      }
+
+      const refreshToken = json?.refresh_token ?? json?.data?.refresh_token ?? json?.data?.refreshToken;
+      if (refreshToken) {
+        pm.environment.set('refresh_token', refreshToken);
+      }

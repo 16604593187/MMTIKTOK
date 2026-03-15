@@ -57,7 +57,7 @@ func (l *FavoriteActionLogic) FavoriteAction(in *video.FavoriteReq) (*video.Favo
 
 	//如果状态未改变，直接阻断
 	if !changed {
-		l.Logger.Infof("拦截到重复操作：用户 %d 对视频 %d 尝试重复执行动作 %d，已直接放行", userid, videoId, actionTypeStr)
+		l.Logger.Infof("拦截到重复操作：用户 %d 对视频 %d 尝试重复执行动作 %s，已直接放行", userid, videoId, actionTypeStr)
 		return &video.FavoriteResp{
 			StatusCode: STATUS_SUCCESS,
 			StatusMsg:  STATUS_SUCCESS_MSG,
@@ -97,8 +97,20 @@ func (l *FavoriteActionLogic) FavoriteAction(in *video.FavoriteReq) (*video.Favo
 	kafkaMsg := kafka.Message{
 		Value: marshalStr,
 	}
-	l.svcCtx.FavouriteBatcher.Push(kafkaMsg)
+	err = l.svcCtx.FavouriteBatcher.Push(kafkaMsg)
+	if err != nil {
+		l.Logger.Errorf("投递 Kafka 失败，准备回滚 Redis 缓存: %v", err)
 
+		// 补偿机制：直接删除相关的 Redis Key
+		userCacheKey := model.Favorite{}.CacheKey(userid)
+		videoCountKey := model.Favorite{}.CountCacheKey(videoId)
+
+		_, delErr := l.svcCtx.Redis.Del(userCacheKey, videoCountKey)
+		if delErr != nil {
+			l.Logger.Errorf("严重错误：Kafka 写入失败且 Redis 回滚也失败，发生脏数据死锁！userId: %d, videoId: %d, err: %v", userid, videoId, delErr)
+		}
+		return nil, errors.New("请稍后再试")
+	}
 	return &video.FavoriteResp{
 		StatusCode: STATUS_SUCCESS,
 		StatusMsg:  STATUS_SUCCESS_MSG,

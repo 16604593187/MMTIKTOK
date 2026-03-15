@@ -1,0 +1,27 @@
+$kind: http-request
+name: 'Favorite action'
+method: POST
+url: '{{base_url}}/douyin/favorite/action'
+order: 8000
+headers:
+  - key: Content-Type
+    value: application/x-www-form-urlencoded
+body:
+  type: urlencoded
+  content:
+    - key: token
+      value: '{{token}}'
+      description: 用户鉴权 token
+    - key: video_id
+      value: '{{video_id}}'
+      description: 视频id
+    - key: action_type
+      value: '{{favorite_action_type}}'
+      description: 1-点赞，2-取消点赞
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test('Status code is 200', function () {
+        pm.response.to.have.status(200);
+      });
